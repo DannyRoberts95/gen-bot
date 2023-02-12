@@ -2,13 +2,8 @@ import React, { useRef, useState } from 'react';
 
 import Button from '@/components/buttons/Button';
 import Layout from '@/components/layout/Layout';
-import LoadingDisplay from '@/components/LoadingDisplay';
 import NextImage from '@/components/NextImage';
 import Seo from '@/components/Seo';
-
-// !STARTERCONF -> Select !STARTERCONF and CMD + SHIFT + F
-// Before you begin editing, follow all comments with `STARTERCONF`,
-// to customize the default configuration.
 
 const abortController = new AbortController();
 
@@ -16,21 +11,20 @@ export default function HomePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState('Enter a Prompt');
+
   const promptInput = useRef(null);
-  const nInput = useRef(null);
 
   // useEffect(() => {
   //   return () => abortController.abort();
   // }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
-    setFeedback('');
-    // e.preventDeafault()
-    const { current: c1 } = promptInput;
-    const { current: c2 } = nInput;
+    const prompt = promptInput?.current?.value;
+    setFeedback('Generating dream....');
+    console.log('prompt', prompt);
 
-    if (c1 && c2) {
-      generateImage(c1.value, parseInt(c2.value));
+    if (prompt) {
+      dream(prompt);
     }
   };
 
@@ -40,41 +34,64 @@ export default function HomePage() {
     } else setFeedback('An error occured');
   };
 
-  const generateImage = async (prompt: string, n: number) => {
-    setLoading(true);
-    setFeedback('Generating your image...');
+  const dream = async (prompt: string) => {
     try {
-      const response = await fetch('/api/generate-image', {
+      const response = await fetch('/api/dream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           prompt,
-          n,
         }),
-        signal: abortController.signal,
+        // signal: abortController.signal,
       });
 
       const data = await response.json();
       if (response.status !== 200) {
-        setLoading(false);
-        setFeedback('');
         throw (
           data.error ||
           new Error(`Request failed with status ${response.status}`)
         );
       }
-
-      setFeedback('success');
-      setLoading(false);
       setData(data.result);
+      console.log(data.result);
+      setFeedback('This is what I can remember about my dream.');
     } catch (error) {
-      // Consider implementing your own error handling logic here
+      setFeedback('Sorry, I am not able to remember my dream.');
       console.log('Error caught', error);
       handleError('error' + error);
-      setLoading(false);
     }
+  };
+
+  const generateContent = () => {
+    console.log(Boolean(data));
+    if (!data) return null;
+    return (
+      <section>
+        {data && (
+          <div className=''>
+            <div className='w-full'>{data.completion.choices[0].text}</div>
+
+            <div className='grid w-full grid-cols-4 gap-4'>
+              {data.images.data.map((img, i) => {
+                return (
+                  <div className='relative'>
+                    <NextImage
+                      alt='AI Image'
+                      width={200}
+                      height={200}
+                      src={img.url}
+                      priority={i === 0}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+    );
   };
 
   return (
@@ -82,8 +99,8 @@ export default function HomePage() {
       <Seo templateTitle='Home' />
 
       <main>
-        <section className='bg-white'>
-          <div className='layout relative flex min-h-screen flex-col items-center justify-center py-12 text-center'>
+        <section className='min-h-screen bg-white'>
+          <div className='layout relative flex flex-col items-center justify-center py-12 text-center'>
             <div>
               <input
                 ref={promptInput}
@@ -94,39 +111,10 @@ export default function HomePage() {
                 required
               />
             </div>
-            <div>
-              <input
-                ref={nInput}
-                type='number'
-                id='nInput'
-                className='block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 '
-                defaultValue={1}
-                required
-              />
-            </div>
-            <Button onClick={handleSubmit}>Generate Image</Button>
-
-            <section className='my-8'>
-              {data ? (
-                <div className='mb-8 flex flex-col md:mb-16'>
-                  {data.data.map((img) => {
-                    return (
-                      <NextImage
-                        key={img.url}
-                        alt='AI Image'
-                        width={500}
-                        height={500}
-                        src={img.url}
-                        // priority
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <LoadingDisplay message={feedback} />
-              )}
-            </section>
+            <Button onClick={handleSubmit}>Submit Man</Button>
           </div>
+          {feedback}
+          {generateContent()}
         </section>
       </main>
     </Layout>

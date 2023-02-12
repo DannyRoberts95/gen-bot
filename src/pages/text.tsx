@@ -1,9 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import Button from '@/components/buttons/Button';
 import Layout from '@/components/layout/Layout';
 import LoadingDisplay from '@/components/LoadingDisplay';
-import NextImage from '@/components/NextImage';
 import Seo from '@/components/Seo';
 
 // !STARTERCONF -> Select !STARTERCONF and CMD + SHIFT + F
@@ -12,26 +11,23 @@ import Seo from '@/components/Seo';
 
 const abortController = new AbortController();
 
-export default function HomePage() {
+export default function TextPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState('Enter a Prompt');
   const promptInput = useRef(null);
   const nInput = useRef(null);
 
-  // useEffect(() => {
-  //   return () => abortController.abort();
-  // }, []);
+  useEffect(() => {
+    return () => abortController.abort();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     setFeedback('');
     // e.preventDeafault()
     const { current: c1 } = promptInput;
-    const { current: c2 } = nInput;
 
-    if (c1 && c2) {
-      generateImage(c1.value, parseInt(c2.value));
-    }
+    c1 && generateCompletion(c1.value);
   };
 
   const handleError = (msg: string) => {
@@ -40,23 +36,24 @@ export default function HomePage() {
     } else setFeedback('An error occured');
   };
 
-  const generateImage = async (prompt: string, n: number) => {
+  const generateCompletion = async (prompt: string) => {
     setLoading(true);
-    setFeedback('Generating your image...');
+    setFeedback('Generating your Completion...');
     try {
-      const response = await fetch('/api/generate-image', {
+      const response = await fetch('/api/generate-completion', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           prompt,
-          n,
         }),
-        signal: abortController.signal,
+        // signal: abortController.signal,
       });
 
       const data = await response.json();
+      console.log('RESPONSE DATA', data);
+
       if (response.status !== 200) {
         setLoading(false);
         setFeedback('');
@@ -69,10 +66,11 @@ export default function HomePage() {
       setFeedback('success');
       setLoading(false);
       setData(data.result);
+      console.log(data.result);
     } catch (error) {
+      console.log(error);
       // Consider implementing your own error handling logic here
-      console.log('Error caught', error);
-      handleError('error' + error);
+      setFeedback('An error occured', error);
       setLoading(false);
     }
   };
@@ -94,33 +92,16 @@ export default function HomePage() {
                 required
               />
             </div>
-            <div>
-              <input
-                ref={nInput}
-                type='number'
-                id='nInput'
-                className='block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 '
-                defaultValue={1}
-                required
-              />
-            </div>
-            <Button onClick={handleSubmit}>Generate Image</Button>
+
+            <Button onClick={handleSubmit}>Generate text</Button>
 
             <section className='my-8'>
               {data ? (
                 <div className='mb-8 flex flex-col md:mb-16'>
-                  {data.data.map((img) => {
-                    return (
-                      <NextImage
-                        key={img.url}
-                        alt='AI Image'
-                        width={500}
-                        height={500}
-                        src={img.url}
-                        // priority
-                      />
-                    );
-                  })}
+                  {console.log('RENDERING DATA:', data)}
+                  {data.choices.map((choice) => (
+                    <p key={choice.text + choice.index}>{choice.text}</p>
+                  ))}
                 </div>
               ) : (
                 <LoadingDisplay message={feedback} />

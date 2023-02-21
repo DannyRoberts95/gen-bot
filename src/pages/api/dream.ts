@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Configuration, OpenAIApi } from 'openai';
+const STORY_MAX_WORDS = 100;
+const COMPLETION_PROMPT_SUFFIX = `There is an ancient power named Yerma who have existed since the dawn of time as the font from which all of nature flows. Yerma is not a human. Write me a exciting and creative short story about Yerma with lots of imagery and with less than ${STORY_MAX_WORDS} words long. `;
+const IMAGE_PROMPT_SUFFIX = `I want you to give me colorful images inspired by the prompt in the style of a famous painter.`;
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -32,10 +35,9 @@ async function dream(req: NextApiRequest, res: NextApiResponse) {
     // Generate a dream from the user prompt
     const completion = await openai.createCompletion({
       model: 'text-davinci-003',
-      suffix:
-        'You recently had a dream about the following prompt. Please describe the vivid dream as best you can.',
+      suffix: `${COMPLETION_PROMPT_SUFFIX} \n`,
       prompt,
-      max_tokens: 256,
+      max_tokens: 4000,
       n: 1,
     });
     const { data: completionData } = completion;
@@ -43,9 +45,9 @@ async function dream(req: NextApiRequest, res: NextApiResponse) {
     const imagePrompt = choices[0].text;
 
     const images = await openai.createImage({
-      prompt: `${imagePrompt}`,
+      prompt: `${IMAGE_PROMPT_SUFFIX}\n prompt:${imagePrompt}`,
       n: 6,
-      size: '256x256',
+      size: '1024x1024',
     });
 
     const obj = {
